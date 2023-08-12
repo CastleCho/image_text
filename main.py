@@ -69,4 +69,3 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Tesseract OCR Error: {te}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
-
