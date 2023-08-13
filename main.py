@@ -34,7 +34,7 @@ async def upload_image(file: UploadFile = File(...)):
 
         expiration_match = re.search(r"유효기간\s+([\d년\s월일]+)", extracted_text)
         status_match = re.search(r"쿠폰상태\s+([\w]+)", extracted_text)
-        product_name_match = re.search(r"선물하기\s*[0×@]\s×\n\n([\s\S]+?)\n\n\d", extracted_text)
+        product_name_match = re.search(r"<\s*.*\s*선물하기.*\s*\n\n(.*?)\n\n", extracted_text)
         exchange_place_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
 
         if expiration_match:
