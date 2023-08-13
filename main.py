@@ -34,7 +34,7 @@ async def upload_image(file: UploadFile = File(...)):
 
         expiration_match = re.search(r"유효기간\s+([\d년\s월일]+)", extracted_text)
         status_match = re.search(r"쿠폰상태\s+([\w]+)", extracted_text)
-        product_name_match = re.search(r"선물하기\s+0 ×\n\n([\s\S]+?)\n\n\d", extracted_text)
+        product_name_match = re.search(r"선물하기\s+\d\s×\n\n([\s\S]+?)\n\n", extracted_text)
         exchange_place_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
 
         if expiration_match:
@@ -69,3 +69,6 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Tesseract OCR Error: {te}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
