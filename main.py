@@ -40,29 +40,29 @@ async def upload_image(file: UploadFile = File(...)):
         if expiration_match:
             expiration_date = expiration_match.group(1).replace("\n", " ").strip()
         else:
-            expiration_date = "유효기간 정보를 찾을 수 없습니다."
+            expiration_date = "null"
 
         if status_match:
             status = status_match.group(1).replace("\n", " ").strip()
         else:
-            status = "쿠폰상태 정보를 찾을 수 없습니다."
+            status = "null"
 
         if product_name_match:
-            product_name = product_name_match.group(1).replace("\n", " ").strip()
-            product_name = " ".join([line for line in product_name.split() if not line.isdigit()])
+            product_name = product_name_match.group(1).replace("\n\n", " ").strip()
+            #product_name = " ".join([line for line in product_name.split() if not line.isdigit()])
         else:
-            product_name = "상품명 정보를 찾을 수 없습니다."
+            product_name = "null"
 
         if exchange_place_match:
             exchange_place = exchange_place_match.group(1).replace("\n", " ").strip()
         else:
-            exchange_place = "교환처 정보를 찾을 수 없습니다."
+            exchange_place = "null"
 
         return {
-            "유효기간": expiration_date,
-            "쿠폰상태": status,
-            "상품명": product_name,
-            "교환처" : exchange_place
+            "expiration_date": expiration_date,
+            "coupon_status": status,
+            "product_name": product_name,
+            "exchange_place" : exchange_place
         }
 
     except pytesseract.TesseractError as te:
