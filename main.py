@@ -5,6 +5,7 @@ import io
 import uvicorn
 import re
 from typing import List
+from pyzbar.pyzbar import decode
 
 app = FastAPI()
 
@@ -20,6 +21,13 @@ def clean_product_name(product_name: str) -> str:
     # 여러 공백 및 줄바꿈을 한 공백으로 치환
     product_name = re.sub(r"\s+", " ", product_name).strip()
     return product_name
+
+def extract_barcode_number(image) -> str:
+    decoded_objects = decode(image)
+    for obj in decoded_objects:
+        barcode_number = obj.data.decode('utf-8')
+        return barcode_number
+    return "null"
 
 async def extract_text_from_image(file: UploadFile):
     contents = await file.read()
@@ -58,11 +66,20 @@ def extract_info_from_text(extracted_text: str) -> dict:
 @app.post("/upload")
 async def upload_images(files: List[UploadFile] = File(...)):
     results = []
+    barcode_numbers = []
 
     for file in files:
         try:
-            extracted_text = await extract_text_from_image(file)
+            contents = await file.read()
+            image = Image.open(io.BytesIO(contents))
+            # 바코드 번호 추출
+            barcode_number = extract_barcode_number(image)
+            barcode_numbers.append(barcode_number)
+
+            # 텍스트 추출
+            extracted_text = pytesseract.image_to_string(image, lang='kor')
             info = extract_info_from_text(extracted_text)
+            info['barcode_number'] = barcode_number  # 바코드 번호 추가
             results.append(info)
 
         except pytesseract.TesseractError as te:
@@ -70,7 +87,8 @@ async def upload_images(files: List[UploadFile] = File(...)):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"General Error: {e}")
 
-    return results
+    is_matching = all(x == barcode_numbers[0] for x in barcode_numbers[1:]) if barcode_numbers else False
+    return {"results": results, "is_matching_barcodes": is_matching}
 
 @app.post("/text")
 async def upload_image(files: List[UploadFile] = File(...)):
