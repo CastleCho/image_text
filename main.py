@@ -6,6 +6,13 @@ import uvicorn
 import re
 from typing import List
 from pyzbar.pyzbar import decode
+from PIL import ImageOps, ImageEnhance
+
+def preprocess_image(image: Image.Image) -> Image.Image:
+    image = ImageOps.grayscale(image)
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(2)  # Contrast 조정, 1은 원래 이미지
+    return image
 
 app = FastAPI()
 
@@ -32,6 +39,7 @@ def extract_barcode_number(image) -> str:
 async def extract_text_from_image(file: UploadFile):
     contents = await file.read()
     image = Image.open(io.BytesIO(contents))
+    image = preprocess_image(image)
     extracted_text = pytesseract.image_to_string(image, lang='kor')
     return extracted_text
 

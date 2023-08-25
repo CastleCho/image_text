@@ -1,0 +1,16 @@
+# 파이썬 빌드 파일
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 가상 환경
+myenv/
+venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# 기타
+*.log
+*.swp
+.DS_Store
