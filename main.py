@@ -14,6 +14,13 @@ def preprocess_image(image: Image.Image) -> Image.Image:
     image = enhancer.enhance(2)  # Contrast 조정, 1은 원래 이미지
     return image
 
+def convert_to_jpeg(png_bytes):
+    png_image = Image.open(io.BytesIO(png_bytes))
+    rgb_im = png_image.convert('RGB')
+    byte_io = io.BytesIO()
+    rgb_im.save(byte_io, format='JPEG')
+    return byte_io.getvalue()
+
 app = FastAPI()
 
 @app.get("/")
@@ -44,32 +51,34 @@ async def extract_text_from_image(file: UploadFile):
     return extracted_text
 
 def extract_info_from_text(extracted_text: str) -> dict:
+    info = {}
+
     if "쿠폰상태" in extracted_text:
         status_match = re.search(r"쿠폰상태\s+([\w]+)", extracted_text)
-        status = status_match.group(1).strip() if status_match else "null"
-        return {"coupon_status": status}
-    else:
+        info['coupon_status'] = status_match.group(1).strip() if status_match else "null"
+        
         # 제품명 추출
-        product_name_match = re.search(r"(.*?)(?=\n\n\d{4,8}\s*\d{4,8}|\n\n\d{4,8})", extracted_text, re.DOTALL)
-        product_name = product_name_match.group(1).strip() if product_name_match else "null"
-        product_name = clean_product_name(product_name)
+    product_name_match = re.search(r"(.*?)(?=\n\n\d{4,8}\s*\d{4,8}|\n\n\d{4,8})", extracted_text, re.DOTALL)
+    product_name = product_name_match.group(1).strip() if product_name_match else "null"
+    product_name = clean_product_name(product_name)
+    info['product_name'] = product_name
     
         # 교환처 추출
-        exchange_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
-        exchange_place = exchange_match.group(1).strip() if exchange_match else "null"
+    exchange_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
+    exchange_place = exchange_match.group(1).strip() if exchange_match else "null"
+    info['exchange_place'] = exchange_place
 
         # 유효기간 추출
-        expiration_match = re.search(r"유효기간\s*([^\n]+)", extracted_text)
-        if not expiration_match:
-            expiration_match = re.search(r"(\d{4}[.년]\s*\d{1,2}[.월]*\s*\d{1,2}[일]*)", extracted_text)
-        expiration_date = expiration_match.group(1).strip() if expiration_match else "null"
+    expiration_match = re.search(r"유효기간\s*([^\n]+)", extracted_text)
+    if not expiration_match:
+        expiration_match = re.search(r"(\d{4}[.년]\s*\d{1,2}[.월]*\s*\d{1,2}[일]*)", extracted_text)
+    expiration_date = expiration_match.group(1).strip() if expiration_match else "null"
+    info['expiration_date'] = expiration_date
 
+    if 'coupon_status' not in info:
+        info['coupon_status'] = "null"
 
-    return {
-        "product_name": product_name,
-        "exchange_place": exchange_place,
-        "expiration_date": expiration_date
-    }
+    return info
 
 @app.post("/upload")
 async def upload_images(files: List[UploadFile] = File(...)):
@@ -79,6 +88,8 @@ async def upload_images(files: List[UploadFile] = File(...)):
     for file in files:
         try:
             contents = await file.read()
+            if file.filename.endswith('.png'):
+                contents = convert_to_jpeg(contents)
             image = Image.open(io.BytesIO(contents))
             # 바코드 번호 추출
             barcode_number = extract_barcode_number(image)
@@ -100,11 +111,13 @@ async def upload_images(files: List[UploadFile] = File(...)):
 
 @app.post("/text")
 async def upload_image(files: List[UploadFile] = File(...)):
-    results = []
 
     for file in files:
         try:
             contents = await file.read()
+            if file.filename.endswith('.png'):
+                contents = convert_to_jpeg(contents)
+
             image = Image.open(io.BytesIO(contents))
             extracted_text = pytesseract.image_to_string(image, lang='kor')
 
