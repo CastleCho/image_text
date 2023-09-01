@@ -21,7 +21,7 @@ async def process_and_extract_text(file: UploadFile):
     open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
     preprocessed_image = preprocess_image(open_cv_image)
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
-    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 6')
+    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 2 --psm 6')
     return extracted_text
 
 def preprocess_image(image: np.array) -> np.array:
