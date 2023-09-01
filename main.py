@@ -21,6 +21,7 @@ def remove_unnecessary_spaces(text: str) -> str:
     text = re.sub(r"(교환처)", "교환처 ", text)
     text = re.sub(r"(선물정보)", "선물정보 ", text)
     text = re.sub(r"(사용여부)", "사용여부 ", text)
+    text = re.sub(r"(쿠폰상태)", "쿠폰상태 ", text)
     # ... 나머지도 이런 식으로 처리
     return text
 
