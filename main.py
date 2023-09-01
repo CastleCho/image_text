@@ -14,6 +14,17 @@ app = FastAPI()
 def read_root():
     return {"message": "이미지 인식 api"}
 
+def remove_unnecessary_spaces(text: str) -> str:
+    text = text.replace(" ", "")
+    # 필요한 띄어쓰기만 다시 추가
+    text = re.sub(r"(유효기간)", "유효기간 ", text)
+    text = re.sub(r"(교환처)", "교환처 ", text)
+    text = re.sub(r"(선물정보)", "선물정보 ", text)
+    text = re.sub(r"(사용여부)", "사용여부 ", text)
+    # ... 나머지도 이런 식으로 처리
+    return text
+
+
 async def process_and_extract_text(file: UploadFile):
     contents = await read_file(file)
     pil_image = Image.open(io.BytesIO(contents))
@@ -83,6 +94,7 @@ async def upload_images(files: List[UploadFile] = File(...)):
     for file in files:
         try:
             extracted_text = await process_and_extract_text(file)
+            extracted_text = remove_unnecessary_spaces(extracted_text)
             info = extract_info_from_text(extracted_text)
             results.append(info)
         except Exception as e:
