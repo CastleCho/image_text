@@ -1,7 +1,7 @@
 fastapi==0.101.0
-Pillow==10.0.0
+PIL==10.0.0  # Pillow 라이브러리입니다.
 pytesseract==0.3.10
-python-multipart==0.0.6
-pyzbar==0.1.9
-uvicorn==0.23.2
-typing_extensions==4.7.1
+opencv-python==4.8.0.76
+numpy==1.23.4
+re  # Python의 표준 라이브러리입니다. 별도로 설치할 필요가 없습니다.
+typing==4.7.1  # Python의 표준 라이브러리입니다. 별도로 설치할 필요가 없습니다.
