@@ -60,7 +60,7 @@ def convert_to_jpeg(png_bytes):
 
 def extract_info_from_text(extracted_text: str) -> dict:
     info = {}
-    
+
     product_name_match = re.search(r"선물하기[^\n]*\n(.*?)(?=\d{6})", extracted_text, re.DOTALL)
 
     # '선물하기'가 없는 경우에는 제품명을 찾을 수 있는 다른 패턴을 사용합니다.
@@ -78,6 +78,9 @@ def extract_info_from_text(extracted_text: str) -> dict:
 
     exchange_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
     exchange_place = exchange_match.group(1).strip() if exchange_match else "null"
+    if exchange_place == '64':
+        exchange_place = 'CU'
+
     info['exchange_place'] = exchange_place
 
     expiration_match = re.search(r"유효기간\s*([^\n]+)", extracted_text)
@@ -93,10 +96,15 @@ def extract_info_from_text(extracted_text: str) -> dict:
     return info
 
 def clean_product_name(product_name: str) -> str:
+    # "\n" 제거
     product_name = product_name.replace("\n", "")
-    remove_patterns = ["<", "선물하기",r"\d{2}:\d{2}", r"\d{3}\s\d{4}", r"[^\w\s]", ">", "©", "|", "Oipay", "all"]
+    # 특정 패턴 제거
+    remove_patterns = ["<", "선물하기", r"\d{2}:\d{2}", r"\d{3}\s\d{4}", ">", "©", "|", "Oipay", "all"]
     for pattern in remove_patterns:
         product_name = re.sub(pattern, "", product_name)
+    # 알파벳, 숫자, 한글, 공백, 점을 제외한 나머지 문자를 제거
+    product_name = re.sub(r"[^\w\s.]", "", product_name)
+    # 공백을 하나로 합침
     product_name = re.sub(r"\s+", " ", product_name).strip()
     return product_name
 
