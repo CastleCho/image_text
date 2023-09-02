@@ -60,9 +60,19 @@ def convert_to_jpeg(png_bytes):
 
 def extract_info_from_text(extracted_text: str) -> dict:
     info = {}
+    
+    product_name_match = re.search(r"선물하기[^\n]*\n(.*?)(?=\d{6})", extracted_text, re.DOTALL)
 
-    product_name_match = re.search(r"선물하기[^\n]*\n(.*?)(?=\d{6})", extracted_text,re.DOTALL)
-    product_name = product_name_match.group(1).strip() if product_name_match else "null"
+    # '선물하기'가 없는 경우에는 제품명을 찾을 수 있는 다른 패턴을 사용합니다.
+    if not product_name_match:
+        product_name_match = re.search(r"([^\n]+)\n([^\n]+)\n(.*?)(?=\d{6})", extracted_text, re.DOTALL)
+        if product_name_match:
+            product_name = product_name_match.group(1).strip() + " " + product_name_match.group(2).strip()
+        else:
+            product_name = "null"
+    else:
+        product_name = product_name_match.group(1).strip()
+        
     product_name = clean_product_name(product_name)
     info['product_name'] = product_name
 
@@ -83,6 +93,7 @@ def extract_info_from_text(extracted_text: str) -> dict:
     return info
 
 def clean_product_name(product_name: str) -> str:
+    product_name = product_name.replace("\n", "")
     remove_patterns = ["<", "선물하기",r"\d{2}:\d{2}", r"\d{3}\s\d{4}", r"[^\w\s]", ">", "©", "|", "Oipay", "all"]
     for pattern in remove_patterns:
         product_name = re.sub(pattern, "", product_name)
