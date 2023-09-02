@@ -76,6 +76,7 @@ def extract_info_from_text(extracted_text: str) -> dict:
     product_name = clean_product_name(product_name)
     if product_name == '64':
         product_name = 'CU'
+        
     info['product_name'] = product_name
 
     exchange_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
