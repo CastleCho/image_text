@@ -74,7 +74,7 @@ def extract_info_from_text(extracted_text: str) -> dict:
         product_name = product_name_match.group(1).strip()
         
     product_name = clean_product_name(product_name)
-    if product_name == '64':
+    if product_name == '\n64':
         product_name = 'CU'
         
     info['product_name'] = product_name
