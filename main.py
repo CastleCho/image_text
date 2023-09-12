@@ -6,7 +6,8 @@ import numpy as np
 import io
 from typing import List
 import re
-
+import json
+from fuzzywuzzy import fuzz
 
 app = FastAPI()
 
@@ -112,6 +113,21 @@ def clean_product_name(product_name: str) -> str:
     product_name = re.sub(r"\s+", " ", product_name).strip()
     return product_name
 
+with open('products.json', 'r', encoding='utf-8') as f:
+    products = json.load(f)
+
+def find_matching_product(product_name: str, products: list) -> dict:
+    highest_similarity = 0
+    matching_product = None
+
+    for product in products:
+        similarity = fuzz.ratio(product_name, product['name'])
+        if similarity > highest_similarity:
+            highest_similarity = similarity
+            matching_product = product
+
+    return matching_product if highest_similarity > 40 else None 
+
 @app.post("/upload")
 async def upload_images(files: List[UploadFile] = File(...)):
     results = []
@@ -120,7 +136,20 @@ async def upload_images(files: List[UploadFile] = File(...)):
             extracted_text = await process_and_extract_text(file)
             extracted_text = remove_unnecessary_spaces(extracted_text)
             info = extract_info_from_text(extracted_text)
-            results.append(info)
+            matching_product = find_matching_product(info['product_name'], products)
+            
+            if matching_product:
+                new_info = {
+                    'name': matching_product['name'],
+                    'price': matching_product['price'],
+                    'image_url': matching_product['image_url'],
+                    'expiration_date': info['expiration_date'],
+                    'coupon_status': info.get('coupon_status', 'null')  # `get` 메소드를 사용하여 key가 없는 경우 'null'로 처리
+                }
+                results.append(new_info)
+            else:
+                results.append(info)
+
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"General Error: {e}")
     return {"results": results}
