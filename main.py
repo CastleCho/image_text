@@ -8,6 +8,7 @@ from typing import List
 import re
 import json
 from fuzzywuzzy import fuzz
+from pyzbar.pyzbar import decode
 
 app = FastAPI()
 
@@ -27,15 +28,21 @@ def remove_unnecessary_spaces(text: str) -> str:
     return text
 
 
-async def process_and_extract_text(file: UploadFile):
+async def process_and_extract_text_and_barcode(file: UploadFile):
     contents = await read_file(file)
     pil_image = Image.open(io.BytesIO(contents))
     open_cv_image = np.array(pil_image)
     open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+    # 바코드 정보 추출
+    barcodes = decode(open_cv_image)
+    barcode_data_list = [barcode.data.decode("utf-8") for barcode in barcodes]
+    
     preprocessed_image = preprocess_image(open_cv_image)
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
     extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 3')
-    return extracted_text
+    
+    return extracted_text, barcode_data_list
+
 
 def preprocess_image(image: np.array) -> np.array:
     # 이미지를 흑백으로 변환
@@ -130,28 +137,46 @@ def find_matching_product(product_name: str, products: list) -> dict:
 
 @app.post("/upload")
 async def upload_images(files: List[UploadFile] = File(...)):
-    results = []
-    for file in files:
-        try:
-            extracted_text = await process_and_extract_text(file)
-            extracted_text = remove_unnecessary_spaces(extracted_text)
-            info = extract_info_from_text(extracted_text)
-            matching_product = find_matching_product(info['product_name'], products)
-            
-            if matching_product:
-                new_info = {
-                    'name': matching_product['name'],
-                    'price': matching_product['price'],
-                    'image_url': matching_product['image_url'],
-                    'expiration_date': info['expiration_date'],
-                    'coupon_status': info.get('coupon_status', 'null')  # `get` 메소드를 사용하여 key가 없는 경우 'null'로 처리
-                }
-                results.append(new_info)
-            else:
-                results.append(info)
+    if len(files) != 2:  # 두 개의 파일만 허용
+        raise HTTPException(status_code=400, detail="Exactly two files should be uploaded")
 
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"General Error: {e}")
+    results = []
+    barcode_list_1, barcode_list_2 = [], []
+
+    # 첫 번째 이미지에서 바코드만 추출
+    try:
+        _, barcode_list_1 = await process_and_extract_text_and_barcode(files[0])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"General Error: {e}")
+
+    # 두 번째 이미지에서 모든 데이터 추출
+    try:
+        extracted_text, barcode_list_2 = await process_and_extract_text_and_barcode(files[1])
+        extracted_text = remove_unnecessary_spaces(extracted_text)
+        info = extract_info_from_text(extracted_text)
+        matching_product = find_matching_product(info['product_name'], products)
+
+        # 두 이미지에서 추출된 바코드를 비교
+        matching_barcodes = [code for code in barcode_list_1 if code in barcode_list_2]
+
+        if matching_product:
+            new_info = {
+                'name': matching_product['name'],
+                'price': matching_product['price'],
+                'image_url': matching_product['image_url'],
+                'expiration_date': info['expiration_date'],
+                'coupon_status': info.get('coupon_status', 'null'),
+                'barcode_match': bool(matching_barcodes),
+            }
+            results.append(new_info)
+        else:
+            results.append({
+                'product_info': info, 
+                'barcode_match': bool(matching_barcodes),
+            })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"General Error: {e}")
+
     return {"results": results}
 
 @app.post("/text")
@@ -159,7 +184,7 @@ async def upload_images(files: List[UploadFile] = File(...)):
     extracted_texts = []
     for file in files:
         try:
-            extracted_text = await process_and_extract_text(file)
+            extracted_text = await process_and_extract_text_and_barcode(file)
             extracted_texts.append(extracted_text)
         except pytesseract.TesseractError as te:
             raise HTTPException(status_code=400, detail=f"Tesseract OCR Error: {te}")
