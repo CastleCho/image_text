@@ -41,7 +41,7 @@ async def process_and_extract_text_and_barcode(file: UploadFile):
     
     # 필요한 경우 OpenCV 이미지를 PIL 이미지로 변환
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
-    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 1 --psm 3')
+    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 6')
     
     return extracted_text, barcode_data_list
 
@@ -91,11 +91,6 @@ def extract_info_from_text(extracted_text: str) -> dict:
 
     exchange_match = re.search(r"교환처\s*([^\n]+)", extracted_text)
     exchange_place = exchange_match.group(1).strip() if exchange_match else "null"
-    if exchange_place == '64':
-        exchange_place = 'CU'
-    if exchange_place == '모바일금액권 55000원':
-        exchange_place = '모바일금액권 5000원'
-
     info['exchange_place'] = exchange_place
 
     expiration_match = re.search(r"유효기간\s*([^\n]+)", extracted_text)
