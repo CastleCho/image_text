@@ -120,7 +120,7 @@ def clean_product_name(product_name: str) -> str:
     product_name = re.sub(r"\s+", " ", product_name).strip()
     return product_name
 
-with open('products.json', 'r', encoding='utf-8') as f:
+with open('/usr/src/app/products.json', 'r', encoding='utf-8') as f:
     products = json.load(f)
 
 def find_matching_product(product_name: str, products: list) -> dict:
