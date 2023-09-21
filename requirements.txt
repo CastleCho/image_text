@@ -2,9 +2,9 @@ fastapi==0.101.0
 pytesseract==0.3.10
 opencv-python==4.8.0.76
 numpy
-Pillow==10.0.0
-python-multipart==0.0.6
-typing-extensions==4.7.1
-fuzzywuzzy==0.18.0
-pyzbar==0.1.9
-uvicorn==0.23.2
+Pillow
+python-multipart
+typing-extensions
+fuzzywuzzy
+pyzbar
+uvicorn
