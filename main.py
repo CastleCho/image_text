@@ -27,19 +27,21 @@ def remove_unnecessary_spaces(text: str) -> str:
     # ... 나머지도 이런 식으로 처리
     return text
 
-
 async def process_and_extract_text_and_barcode(file: UploadFile):
     contents = await read_file(file)
-    pil_image = Image.open(io.BytesIO(contents))
-    open_cv_image = np.array(pil_image)
-    open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+    
+    # OpenCV로 이미지 로드
+    open_cv_image = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
+    
     # 바코드 정보 추출
     barcodes = decode(open_cv_image)
     barcode_data_list = [barcode.data.decode("utf-8") for barcode in barcodes]
     
     preprocessed_image = preprocess_image(open_cv_image)
+    
+    # 필요한 경우 OpenCV 이미지를 PIL 이미지로 변환
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
-    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 3')
+    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 1 --psm 3')
     
     return extracted_text, barcode_data_list
 
@@ -64,7 +66,6 @@ def convert_to_jpeg(png_bytes):
     byte_io = io.BytesIO()
     rgb_im.save(byte_io, format='JPEG')
     return byte_io.getvalue()
-
 
 def extract_info_from_text(extracted_text: str) -> dict:
     info = {}
@@ -92,6 +93,8 @@ def extract_info_from_text(extracted_text: str) -> dict:
     exchange_place = exchange_match.group(1).strip() if exchange_match else "null"
     if exchange_place == '64':
         exchange_place = 'CU'
+    if exchange_place == '모바일금액권 55000원':
+        exchange_place = '모바일금액권 5000원'
 
     info['exchange_place'] = exchange_place
 
@@ -99,6 +102,10 @@ def extract_info_from_text(extracted_text: str) -> dict:
     if not expiration_match:
         expiration_match = re.search(r"(\d{4}[.년]\s*\d{1,2}[.월]*\s*\d{1,2}[일]*)", extracted_text)
     expiration_date = expiration_match.group(1).strip() if expiration_match else "null"
+
+    year_pattern = re.compile(r'(\d{5,})[.년]')
+    expiration_date = year_pattern.sub(lambda x: x.group(1)[:4]+'년', expiration_date)
+    
     info['expiration_date'] = expiration_date
 
     if "쿠폰상태" in extracted_text:
@@ -120,7 +127,7 @@ def clean_product_name(product_name: str) -> str:
     product_name = re.sub(r"\s+", " ", product_name).strip()
     return product_name
 
-with open('/usr/src/app/products.json', 'r', encoding='utf-8') as f:
+with open('products.json', 'r', encoding='utf-8') as f:
     products = json.load(f)
 
 def find_matching_product(product_name: str, products: list) -> dict:
