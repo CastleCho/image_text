@@ -6,5 +6,4 @@ Pillow
 python-multipart
 typing-extensions
 fuzzywuzzy
-pyzbar
 uvicorn
