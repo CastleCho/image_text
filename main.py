@@ -36,7 +36,7 @@ async def process_and_extract_text(file: UploadFile):
     
     # 필요한 경우 OpenCV 이미지를 PIL 이미지로 변환
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
-    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 1 --psm 3')
+    extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 6')
     
     return extracted_text
 
