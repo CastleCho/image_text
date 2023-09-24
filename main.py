@@ -8,7 +8,6 @@ from typing import List
 import re
 import json
 from fuzzywuzzy import fuzz
-from pyzbar.pyzbar import decode
 
 app = FastAPI()
 
@@ -27,15 +26,11 @@ def remove_unnecessary_spaces(text: str) -> str:
     # ... 나머지도 이런 식으로 처리
     return text
 
-async def process_and_extract_text_and_barcode(file: UploadFile):
+async def process_and_extract_text(file: UploadFile):
     contents = await read_file(file)
     
     # OpenCV로 이미지 로드
     open_cv_image = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
-    
-    # 바코드 정보 추출
-    barcodes = decode(open_cv_image)
-    barcode_data_list = [barcode.data.decode("utf-8") for barcode in barcodes]
     
     preprocessed_image = preprocess_image(open_cv_image)
     
@@ -43,8 +38,7 @@ async def process_and_extract_text_and_barcode(file: UploadFile):
     pil_image = Image.fromarray(cv2.cvtColor(preprocessed_image, cv2.COLOR_BGR2RGB))
     extracted_text = pytesseract.image_to_string(pil_image, lang='kor+eng', config='--oem 3 --psm 6')
     
-    return extracted_text, barcode_data_list
-
+    return extracted_text
 
 def preprocess_image(image: np.array) -> np.array:
     # 이미지를 흑백으로 변환
@@ -143,23 +137,19 @@ async def upload_images(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=400, detail="Exactly two files should be uploaded")
 
     results = []
-    barcode_list_1, barcode_list_2 = [], []
 
-    # 첫 번째 이미지에서 바코드만 추출
+      # 첫 번째 이미지 처리 (바코드 부분 제거)
     try:
-        _, barcode_list_1 = await process_and_extract_text_and_barcode(files[0])
+        extracted_text_1 = await process_and_extract_text(files[0])
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
 
-    # 두 번째 이미지에서 모든 데이터 추출
+    # 두 번째 이미지 처리 (바코드 부분 제거)
     try:
-        extracted_text, barcode_list_2 = await process_and_extract_text_and_barcode(files[1])
-        extracted_text = remove_unnecessary_spaces(extracted_text)
-        info = extract_info_from_text(extracted_text)
+        extracted_text_2 = await process_and_extract_text(files[1])
+        extracted_text_2 = remove_unnecessary_spaces(extracted_text_2)
+        info = extract_info_from_text(extracted_text_2)
         matching_product = find_matching_product(info['product_name'], products)
-
-        # 두 이미지에서 추출된 바코드를 비교
-        matching_barcodes = [code for code in barcode_list_1 if code in barcode_list_2]
 
         if matching_product:
             new_info = {
@@ -168,25 +158,23 @@ async def upload_images(files: List[UploadFile] = File(...)):
                 'image_url': matching_product['image_url'],
                 'expiration_date': info['expiration_date'],
                 'coupon_status': info.get('coupon_status', 'null'),
-                'barcode_match': bool(matching_barcodes),
             }
             results.append(new_info)
         else:
             results.append({
-                'product_info': info, 
-                'barcode_match': bool(matching_barcodes),
+                'product_info': info
             })
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
 
     return {"results": results}
-
+    
 @app.post("/text")
 async def upload_images(files: List[UploadFile] = File(...)):
     extracted_texts = []
     for file in files:
         try:
-            extracted_text = await process_and_extract_text_and_barcode(file)
+            extracted_text = await process_and_extract_text(file)
             extracted_texts.append(extracted_text)
         except pytesseract.TesseractError as te:
             raise HTTPException(status_code=400, detail=f"Tesseract OCR Error: {te}")
