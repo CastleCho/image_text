@@ -6289,5 +6289,11 @@
         "image_url": "https://img1.kakaocdn.net/thumb/C320x320@2x.fwebp.q82/?fname=https%3A%2F%2Fst.kakaocdn.net%2Fproduct%2Fgift%2Fproduct%2F20230809101949_cbec85b0a9944eb98254940dc160ec74.jpg",
         "price": "7,300원",
         "brand": "투썸플레이스"
+    },
+    {
+        "name": "모바일금액권 5,000원",
+        "image_url": "https://img1.kakaocdn.net/thumb/C320x320@2x.fwebp.q82/?fname=https%3A%2F%2Fst.kakaocdn.net%2Fproduct%2Fgift%2Fproduct%2F20230221100735_2c324e5939354e39bc9ae623be06500e.jpg",
+        "price": "5,000원",
+        "brand": "CU" 
     }
 ]
