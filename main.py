@@ -129,7 +129,7 @@ def find_matching_product(product_name: str, products: list) -> dict:
             highest_similarity = similarity
             matching_product = product
 
-    return matching_product if highest_similarity > 40 else None 
+    return matching_product if highest_similarity > 70 else None 
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):  # Single file upload
