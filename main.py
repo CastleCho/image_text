@@ -132,23 +132,11 @@ def find_matching_product(product_name: str, products: list) -> dict:
     return matching_product if highest_similarity > 40 else None 
 
 @app.post("/upload")
-async def upload_images(files: List[UploadFile] = File(...)):
-    if len(files) != 2:  # 두 개의 파일만 허용
-        raise HTTPException(status_code=400, detail="Exactly two files should be uploaded")
-
-    results = []
-
-      # 첫 번째 이미지 처리 (바코드 부분 제거)
+async def upload_image(file: UploadFile = File(...)):  # Single file upload
     try:
-        extracted_text_1 = await process_and_extract_text(files[0])
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"General Error: {e}")
-
-    # 두 번째 이미지 처리 (바코드 부분 제거)
-    try:
-        extracted_text_2 = await process_and_extract_text(files[1])
-        extracted_text_2 = remove_unnecessary_spaces(extracted_text_2)
-        info = extract_info_from_text(extracted_text_2)
+        extracted_text = await process_and_extract_text(file)
+        extracted_text = remove_unnecessary_spaces(extracted_text)
+        info = extract_info_from_text(extracted_text)
         matching_product = find_matching_product(info['product_name'], products)
 
         if matching_product:
@@ -159,15 +147,11 @@ async def upload_images(files: List[UploadFile] = File(...)):
                 'expiration_date': info['expiration_date'],
                 'coupon_status': info.get('coupon_status', 'null'),
             }
-            results.append(new_info)
+            return {"result": new_info}
         else:
-            results.append({
-                'product_info': info
-            })
+            return {"product_info": info}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
-
-    return {"results": results}
     
 @app.post("/text")
 async def upload_images(files: List[UploadFile] = File(...)):
