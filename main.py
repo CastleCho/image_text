@@ -146,6 +146,7 @@ async def upload_image(files: UploadFile = File(...)):  # Single file upload
                 'image_url': matching_product['image_url'],
                 'expiration_date': info['expiration_date'],
                 'coupon_status': info.get('coupon_status', 'null'),
+                'exchange_place': info.get('exchange_place', 'null'),
             }
             return {"result": new_info}
         else:
