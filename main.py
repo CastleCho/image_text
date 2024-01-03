@@ -8,6 +8,7 @@ from typing import List
 import re
 import json
 from fuzzywuzzy import fuzz
+from pyzbar.pyzbar import decode
 
 app = FastAPI()
 
@@ -154,6 +155,20 @@ async def upload_image(files: UploadFile = File(...)):  # Single file upload
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"General Error: {e}")
     
+@app.post("/barcode")
+async def upload_image_for_barcode(files: UploadFile = File(...)):
+    try:
+        contents = await read_file(files)
+        open_cv_image = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
+
+        # 바코드 인식
+        decoded_objects = decode(open_cv_image)
+        barcodes = [obj.data.decode('utf-8') for obj in decoded_objects]
+
+        return {"barcodes": barcodes}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error in barcode recognition: {e}")
+
 @app.post("/text")
 async def upload_images(files: List[UploadFile] = File(...)):
     extracted_texts = []
